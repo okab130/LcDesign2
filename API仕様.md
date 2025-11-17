@@ -1,23 +1,20 @@
-# LC自動倉庫出庫指示システム Web API/REST インターフェース仕様
+# LC自動倉庫出庫指示システム REST API インターフェース仕様（開発テスト環境用）
 
 ## 1. 概要
 
 ### 1.1 認証方式
-- **認証方式**: JWT（JSON Web Token）認証
-- **認証ヘッダー**: Authorization: Bearer {JWTトークン}
-- **アルゴリズム**: HS256
-- **トークン有効期限**:
-  - アクセストークン: 30分
-  - リフレッシュトークン: 24時間
+- **認証方式**: なし（開発テスト環境用）
+- **注意**: 本番環境へのデプロイ前にJWT認証を実装する必要があります
 
 ### 1.2 通信プロトコル
-- **プロトコル**: HTTPS（TLS 1.2以上）
+- **プロトコル**: HTTP（開発テスト環境用）
 - **データ形式**: JSON
 - **文字エンコーディング**: UTF-8
+- **注意**: 本番環境ではHTTPS（TLS 1.2以上）を使用してください
 
 ### 1.3 エンドポイントURL
-- **LC自動倉庫API**: https://lc-warehouse-api.example.com
-- **本システムAPI**: https://shipment-system.example.com
+- **LC自動倉庫モックサーバ**: http://localhost:5001
+- **本システム**: http://localhost:8000
 
 ### 1.4 タイムアウト設定
 - 在庫情報取得: 30秒
@@ -26,112 +23,20 @@
 
 ---
 
-## 2. JWT認証トークン取得API
+## 2. LC自動倉庫側が提供するAPI（開発テスト環境では認証なし）
 
-### 2.1 トークン取得（初回認証）
-
-#### エンドポイント
-```
-POST https://lc-warehouse-api.example.com/api/v1/auth/token
-POST https://shipment-system.example.com/api/v1/auth/token
-```
-
-#### リクエストヘッダー
-```
-Content-Type: application/json
-```
-
-#### リクエストボディ
-```json
-{
-  "client_id": "shipment_system_client",
-  "client_secret": "xxxxxxxxxxxxxxxxxxxxx"
-}
-```
-
-#### レスポンス（成功時）
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "Bearer",
-  "expires_in": 1800,
-  "refresh_expires_in": 86400
-}
-```
-
-#### レスポンス（失敗時）
-```json
-{
-  "error": "invalid_client",
-  "error_description": "Invalid client credentials"
-}
-```
-
-#### ステータスコード
-- 200: 成功
-- 401: 認証失敗
-
----
-
-### 2.2 トークンリフレッシュ
-
-#### エンドポイント
-```
-POST https://lc-warehouse-api.example.com/api/v1/auth/refresh
-POST https://shipment-system.example.com/api/v1/auth/refresh
-```
-
-#### リクエストヘッダー
-```
-Content-Type: application/json
-```
-
-#### リクエストボディ
-```json
-{
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-#### レスポンス（成功時）
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "Bearer",
-  "expires_in": 1800
-}
-```
-
-#### レスポンス（失敗時）
-```json
-{
-  "error": "invalid_token",
-  "error_description": "Refresh token is expired or invalid"
-}
-```
-
-#### ステータスコード
-- 200: 成功
-- 401: トークン無効/期限切れ
-
----
-
-## 3. LC自動倉庫側が提供するAPI
-
-### 3.1 在庫情報取得API
+### 2.1 在庫情報取得API
 
 #### 概要
 LC自動倉庫の全在庫情報を取得するAPI。在庫照会画面で「最新化」ボタン押下時に呼び出される。
 
 #### エンドポイント
 ```
-GET https://lc-warehouse-api.example.com/api/v1/inventory
+GET http://localhost:5001/api/v1/inventory
 ```
 
 #### リクエストヘッダー
 ```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 Accept: application/json
 ```
 
@@ -193,14 +98,6 @@ Accept: application/json
 
 #### エラーレスポンス
 
-**認証エラー（401）**
-```json
-{
-  "error": "unauthorized",
-  "error_description": "Invalid or expired JWT token"
-}
-```
-
 **サーバーエラー（500）**
 ```json
 {
@@ -211,25 +108,23 @@ Accept: application/json
 
 #### ステータスコード
 - 200: 成功
-- 401: 認証エラー（トークン無効/期限切れ）
 - 500: サーバーエラー
 - 504: タイムアウト
 
 ---
 
-### 3.2 出庫依頼送信API
+### 2.2 出庫依頼送信API
 
 #### 概要
 複数拠点の出庫依頼をまとめて送信するAPI。LC倉庫担当が出庫依頼一覧画面で送信ボタン押下時に呼び出される。
 
 #### エンドポイント
 ```
-POST https://lc-warehouse-api.example.com/api/v1/shipment-requests
+POST http://localhost:5001/api/v1/shipment-requests
 ```
 
 #### リクエストヘッダー
 ```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 Content-Type: application/json
 Accept: application/json
 ```
@@ -337,14 +232,6 @@ Accept: application/json
 }
 ```
 
-**認証エラー（401）**
-```json
-{
-  "error": "unauthorized",
-  "error_description": "Invalid or expired JWT token"
-}
-```
-
 **サーバーエラー（500）**
 ```json
 {
@@ -356,27 +243,25 @@ Accept: application/json
 #### ステータスコード
 - 200: 成功（一部失敗を含む。resultsを確認）
 - 400: バリデーションエラー
-- 401: 認証エラー（トークン無効/期限切れ）
 - 500: サーバーエラー
 - 504: タイムアウト
 
 ---
 
-## 4. 本システムが提供するAPI
+## 3. 本システムが提供するAPI（開発テスト環境では認証なし）
 
-### 4.1 出庫実績受信API（Webhook）
+### 3.1 出庫実績受信API（Webhook）
 
 #### 概要
 LC自動倉庫から出庫完了後即時に出庫実績を受信するWebhook API。LC側から本システムのエンドポイントを呼び出す。
 
 #### エンドポイント
 ```
-POST https://shipment-system.example.com/api/v1/shipment-results
+POST http://localhost:8000/api/v1/shipment-results
 ```
 
 #### リクエストヘッダー
 ```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 Content-Type: application/json
 ```
 
@@ -470,15 +355,6 @@ Content-Type: application/json
 }
 ```
 
-**認証エラー（401）**
-```json
-{
-  "status": "error",
-  "error": "unauthorized",
-  "message": "Invalid or expired JWT token"
-}
-```
-
 **サーバーエラー（500）**
 ```json
 {
@@ -491,197 +367,85 @@ Content-Type: application/json
 #### ステータスコード
 - 200: 成功
 - 400: バリデーションエラー
-- 401: 認証エラー（トークン無効/期限切れ）
 - 500: サーバーエラー
 
 #### 処理フロー
 1. Webhookリクエスト受信
-2. JWTトークン検証
-3. リクエストボディのバリデーション
+2. リクエストボディのバリデーション
    - 必須項目チェック
    - データ型チェック
    - 商品コード存在チェック
    - 配送拠点コード存在チェック
    - 出庫依頼ID存在チェック（request_idがnullでない場合）
-4. LcShipmentResultテーブルへINSERT
-5. HTTPステータスコード200とレスポンスJSONを返却
+3. LcShipmentResultテーブルへINSERT
+4. HTTPステータスコード200とレスポンスJSONを返却
 
 ---
 
-## 5. エラーハンドリング
+## 4. エラーハンドリング
 
-### 5.1 クライアント側（本システム）
+### 4.1 クライアント側（本システム）
 
 #### 在庫情報取得・出庫依頼送信
 - タイムアウト発生時: 画面にポップアップでエラー表示
 - APIエラー発生時: エラーメッセージをポップアップ表示
 - リトライ: なし（ユーザーが手動で再実行）
 
-#### トークン有効期限切れ時
-1. リフレッシュトークンを使用して新しいアクセストークンを自動取得
-2. 取得成功: 元のAPIリクエストを再実行
-3. 取得失敗: 再認証が必要な旨をポップアップ表示
-
-### 5.2 サーバー側（本システム）
+### 4.2 サーバー側（本システム）
 
 #### 出庫実績受信
-- 認証エラー: HTTPステータスコード401を返却
 - バリデーションエラー: HTTPステータスコード400を返却、エラー詳細をレスポンスボディに含める
 - サーバーエラー: HTTPステータスコード500を返却
 - エラー内容はアプリケーションログに出力（画面表示なし）
 
 ---
 
-## 6. セキュリティ
+## 5. 本番環境への移行
 
-### 6.1 HTTPS通信
-- 本番環境: 正式なSSL/TLS証明書を使用
-- 開発環境: 自己署名証明書使用可能
-- TLS 1.2以上を使用
-- 証明書検証を必須とする
+### 5.1 必要な変更
+1. **通信プロトコル**: HTTP → HTTPS（TLS 1.2以上）
+2. **認証**: なし → JWT認証実装
+3. **エンドポイントURL**: localhost → 本番サーバURL
+4. **環境変数**: JWT_SECRET_KEY等の設定
 
-### 6.2 JWTトークン管理
-- シークレットキー: 環境変数で管理、ハードコード禁止
-- アルゴリズム: HS256
-- アクセストークン有効期限: 30分（短く設定）
-- リフレッシュトークン有効期限: 24時間
-- リフレッシュトークン: セキュアな保存（HTTPOnly Cookie推奨）
-
-### 6.3 クライアント認証情報
-- クライアントID: 環境変数で管理
-- クライアントシークレット: 環境変数で管理、暗号化推奨
-- ハードコード禁止
+### 5.2 JWT認証実装時の仕様
+- **ライブラリ**: djangorestframework-simplejwt
+- **アクセストークン有効期限**: 30分
+- **リフレッシュトークン有効期限**: 24時間
+- **アルゴリズム**: HS256
+- **シークレットキー**: 環境変数で管理（ハードコード禁止）
 
 ---
 
-## 7. APIログ
+## 6. 実装例（Python/Django）
 
-### 7.1 ログ出力項目
-- リクエスト日時
-- エンドポイントURL
-- HTTPメソッド
-- リクエストヘッダー（Authorizationは除く）
-- リクエストボディ
-- レスポンスステータスコード
-- レスポンスボディ
-- 処理時間
-- エラー内容（エラー時のみ）
-- スタックトレース（エラー時のみ）
-
-### 7.2 ログレベル
-- INFO: 正常処理
-- WARN: タイムアウト、リトライ
-- ERROR: APIエラー、認証エラー、サーバーエラー
-
-### 7.3 ログ保存
-- アプリケーションログファイルに出力
-- データベーステーブルには保存しない（InterfaceReceiveLog/InterfaceSendLogテーブルは廃止）
-
----
-
-## 8. 実装例（Python/Django）
-
-### 8.1 JWT認証取得
-
-```python
-import requests
-import os
-from datetime import datetime, timedelta
-
-class JWTTokenManager:
-    def __init__(self):
-        self.access_token = None
-        self.refresh_token = None
-        self.token_expires_at = None
-        
-    def get_token(self):
-        """アクセストークンを取得（期限切れの場合は自動リフレッシュ）"""
-        if self.access_token and datetime.now() < self.token_expires_at:
-            return self.access_token
-            
-        if self.refresh_token:
-            return self._refresh_token()
-        else:
-            return self._authenticate()
-    
-    def _authenticate(self):
-        """初回認証"""
-        url = "https://lc-warehouse-api.example.com/api/v1/auth/token"
-        payload = {
-            "client_id": os.getenv("LC_API_CLIENT_ID"),
-            "client_secret": os.getenv("LC_API_CLIENT_SECRET")
-        }
-        
-        response = requests.post(url, json=payload, timeout=30)
-        response.raise_for_status()
-        
-        data = response.json()
-        self.access_token = data["access_token"]
-        self.refresh_token = data["refresh_token"]
-        self.token_expires_at = datetime.now() + timedelta(seconds=data["expires_in"] - 60)
-        
-        return self.access_token
-    
-    def _refresh_token(self):
-        """トークンリフレッシュ"""
-        url = "https://lc-warehouse-api.example.com/api/v1/auth/refresh"
-        payload = {
-            "refresh_token": self.refresh_token
-        }
-        
-        response = requests.post(url, json=payload, timeout=30)
-        
-        if response.status_code == 401:
-            # リフレッシュトークンも期限切れ、再認証
-            return self._authenticate()
-        
-        response.raise_for_status()
-        
-        data = response.json()
-        self.access_token = data["access_token"]
-        self.token_expires_at = datetime.now() + timedelta(seconds=data["expires_in"] - 60)
-        
-        return self.access_token
-```
-
-### 8.2 在庫情報取得
+### 6.1 在庫情報取得（開発テスト環境用）
 
 ```python
 def get_inventory():
-    """LC自動倉庫から在庫情報を取得"""
-    token_manager = JWTTokenManager()
-    token = token_manager.get_token()
-    
-    url = "https://lc-warehouse-api.example.com/api/v1/inventory"
+    """LC自動倉庫から在庫情報を取得（開発テスト環境用）"""
+    url = "http://localhost:5001/api/v1/inventory"
     headers = {
-        "Authorization": f"Bearer {token}",
         "Accept": "application/json"
     }
     
     try:
-        response = requests.get(url, headers=headers, timeout=30, verify=True)
+        response = requests.get(url, headers=headers, timeout=30)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.Timeout:
         raise Exception("在庫情報取得がタイムアウトしました")
     except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 401:
-            raise Exception("認証エラー: トークンが無効または期限切れです")
-        else:
-            raise Exception(f"APIエラー: {e.response.text}")
+        raise Exception(f"APIエラー: {e.response.text}")
 ```
 
-### 8.3 出庫依頼送信
+### 6.2 出庫依頼送信（開発テスト環境用）
 
 ```python
 def send_shipment_requests(requests_data):
-    """LC自動倉庫へ出庫依頼を送信"""
-    token_manager = JWTTokenManager()
-    token = token_manager.get_token()
-    
-    url = "https://lc-warehouse-api.example.com/api/v1/shipment-requests"
+    """LC自動倉庫へ出庫依頼を送信（開発テスト環境用）"""
+    url = "http://localhost:5001/api/v1/shipment-requests"
     headers = {
-        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
         "Accept": "application/json"
     }
@@ -691,33 +455,27 @@ def send_shipment_requests(requests_data):
     }
     
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=60, verify=True)
+        response = requests.post(url, headers=headers, json=payload, timeout=60)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.Timeout:
         raise Exception("出庫依頼送信がタイムアウトしました")
     except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 401:
-            raise Exception("認証エラー: トークンが無効または期限切れです")
-        elif e.response.status_code == 400:
+        if e.response.status_code == 400:
             raise Exception(f"バリデーションエラー: {e.response.text}")
         else:
             raise Exception(f"APIエラー: {e.response.text}")
 ```
 
-### 8.4 出庫実績受信（Django REST framework）
+### 6.3 出庫実績受信（Django REST framework）（開発テスト環境用）
 
 ```python
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework.permissions import IsAuthenticated
 
 class ShipmentResultWebhookView(APIView):
-    """出庫実績受信Webhook"""
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    """出庫実績受信Webhook（開発テスト環境用・認証なし）"""
     
     def post(self, request):
         try:
@@ -764,24 +522,25 @@ class ShipmentResultWebhookView(APIView):
 
 ---
 
-## 9. テスト
+## 7. テスト
 
-### 9.1 単体テスト
+### 7.1 単体テスト
 - 各APIエンドポイントごとに正常系・異常系テストを実施
 - モックサーバーを使用してLC自動倉庫APIをシミュレート
 
-### 9.2 結合テスト
+### 7.2 結合テスト
 - 本システムとLC自動倉庫の実際のAPI連携テスト
 - 開発環境で実施
 
-### 9.3 負荷テスト
+### 7.3 負荷テスト
 - 同時アクセス数を想定した負荷テスト
 - タイムアウト設定の妥当性確認
 
 ---
 
-## 10. 変更履歴
+## 8. 変更履歴
 
 | 日付 | バージョン | 変更内容 |
 |------|-----------|---------|
 | 2023-11-16 | 1.0 | 初版作成（APIキー認証からJWT認証へ変更、HTTPからHTTPSへ変更） |
+| 2025-11-17 | 1.1 | 開発テスト環境用に変更（JWT認証なし、HTTP通信） |
