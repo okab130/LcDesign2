@@ -2,7 +2,8 @@ from django.contrib import admin
 from django.urls import path, include
 from apps.users.views_web import (
     login_view, logout_view, top_view, inventory_view,
-    shipment_request_list_view, shipment_result_list_view
+    shipment_request_list_view, shipment_request_register_view,
+    shipment_result_list_view
 )
 
 urlpatterns = [
@@ -13,7 +14,7 @@ urlpatterns = [
     path('top/', top_view, name='top'),
     path('inventory/', inventory_view, name='inventory'),
     path('shipment-request/', shipment_request_list_view, name='shipment_request_list'),
-    path('shipment-request/register/', shipment_request_list_view, name='shipment_request_register'),
+    path('shipment-request/register/', shipment_request_register_view, name='shipment_request_register'),
     path('shipment-result/', shipment_result_list_view, name='shipment_result_list'),
     
     # 管理画面
