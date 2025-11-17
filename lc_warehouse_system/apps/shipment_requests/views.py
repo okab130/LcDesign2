@@ -125,7 +125,9 @@ class LcShipmentRequestViewSet(viewsets.ModelViewSet):
                             req_obj = LcShipmentRequest.objects.get(request_id=req_id)
                             if is_success:
                                 req_obj.request_status = 'SENT'
-                                req_obj.sent_by = request.user
+                                # 開発テスト環境では認証なしでも動作するように
+                                if request.user.is_authenticated:
+                                    req_obj.sent_by = request.user
                                 req_obj.sent_at = datetime.now()
                                 success_count += 1
                             else:
