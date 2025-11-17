@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在庫照会 - LC自動倉庫出庫指示システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #F5F5F5;
+        }
+        .header {
+            background-color: #2196F3;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .header-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .btn-link {
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .btn-logout {
+            background-color: white;
+            color: #2196F3;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .main-content {
+            max-width: 1600px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .page-title {
+            font-size: 24px;
+            color: #333;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background-color: #2196F3;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #1976D2;
+        }
+        .btn-refresh {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .btn-refresh:hover {
+            background-color: #388E3C;
+        }
+        .filter-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        input[type="text"],
+        input[type="date"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        .result-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .result-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #E3F2FD;
+            border-radius: 5px;
+        }
+        .result-count {
+            font-size: 14px;
+            color: #666;
+        }
+        .last-updated {
+            font-size: 12px;
+            color: #999;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+        th {
+            background-color: #2196F3;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-size: 12px;
+            position: sticky;
+            top: 0;
+        }
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        tr:nth-child(even) {
+            background-color: #FAFAFA;
+        }
+        tr:hover {
+            background-color: #E3F2FD;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .pagination button {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        .pagination button:hover {
+            background-color: #E3F2FD;
+        }
+        .pagination .active {
+            background-color: #2196F3;
+            color: white;
+            border-color: #2196F3;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-title">LC自動倉庫出庫指示システム</div>
+        <div class="header-right">
+            <a href="#" class="btn-link">トップへ戻る</a>
+            <button class="btn-logout">ログアウト</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="page-header">
+            <div class="page-title">在庫照会</div>
+            <button class="btn btn-refresh">🔄 最新化</button>
+        </div>
+
+        <div class="filter-container">
+            <div class="filter-grid">
+                <div class="form-group">
+                    <label>商品コード</label>
+                    <input type="text" placeholder="部分一致">
+                </div>
+                <div class="form-group">
+                    <label>製造工場コード</label>
+                    <input type="text" placeholder="部分一致">
+                </div>
+                <div class="form-group">
+                    <label>製造ラインコード</label>
+                    <input type="text" placeholder="部分一致">
+                </div>
+                <div class="form-group">
+                    <label>賞味期限（開始）</label>
+                    <input type="date">
+                </div>
+                <div class="form-group">
+                    <label>賞味期限（終了）</label>
+                    <input type="date">
+                </div>
+            </div>
+        </div>
+
+        <div class="result-container">
+            <div class="result-info">
+                <div class="result-count">表示件数: 127件 / 総件数: 1,234件</div>
+                <div class="last-updated">最終更新: 2023-11-15 13:45:32</div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 130px;">パレットID</th>
+                        <th style="width: 100px;">商品コード</th>
+                        <th style="width: 150px;">商品名</th>
+                        <th style="width: 70px;">数量</th>
+                        <th style="width: 100px;">ロケーション</th>
+                        <th style="width: 80px;">製造工場</th>
+                        <th style="width: 80px;">製造ライン</th>
+                        <th style="width: 120px;">製造番号</th>
+                        <th style="width: 100px;">製造年月日</th>
+                        <th style="width: 100px;">賞味期限</th>
+                        <th style="width: 80px;">入庫区分</th>
+                        <th style="width: 140px;">入庫日時</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>PLT-20231115-001</td>
+                        <td>PRD001</td>
+                        <td>アルコーラ</td>
+                        <td>100</td>
+                        <td>A-01-01</td>
+                        <td>F001</td>
+                        <td>L001</td>
+                        <td>20231115-001</td>
+                        <td>2023-11-15</td>
+                        <td>2024-11-15</td>
+                        <td>自動</td>
+                        <td>2023-11-15 08:30:15</td>
+                    </tr>
+                    <tr>
+                        <td>PLT-20231115-002</td>
+                        <td>PRD002</td>
+                        <td>アルコーヒー</td>
+                        <td>120</td>
+                        <td>A-01-02</td>
+                        <td>F001</td>
+                        <td>L002</td>
+                        <td>20231115-002</td>
+                        <td>2023-11-15</td>
+                        <td>2024-05-15</td>
+                        <td>自動</td>
+                        <td>2023-11-15 09:15:32</td>
+                    </tr>
+                    <tr>
+                        <td>PLT-20231114-098</td>
+                        <td>PRD003</td>
+                        <td>アルオレンジ</td>
+                        <td>100</td>
+                        <td>A-02-05</td>
+                        <td>F002</td>
+                        <td>L001</td>
+                        <td>20231114-098</td>
+                        <td>2023-11-14</td>
+                        <td>2024-08-14</td>
+                        <td>自動</td>
+                        <td>2023-11-14 14:22:18</td>
+                    </tr>
+                    <tr>
+                        <td>PLT-20231114-099</td>
+                        <td>PRD004</td>
+                        <td>アルミルク</td>
+                        <td>80</td>
+                        <td>A-02-06</td>
+                        <td>F002</td>
+                        <td>L002</td>
+                        <td>20231114-099</td>
+                        <td>2023-11-14</td>
+                        <td>2024-02-14</td>
+                        <td>手動</td>
+                        <td>2023-11-14 16:45:52</td>
+                    </tr>
+                    <tr>
+                        <td>PLT-20231113-155</td>
+                        <td>PRD001</td>
+                        <td>アルコーラ</td>
+                        <td>100</td>
+                        <td>B-03-12</td>
+                        <td>F001</td>
+                        <td>L001</td>
+                        <td>20231113-155</td>
+                        <td>2023-11-13</td>
+                        <td>2024-11-13</td>
+                        <td>自動</td>
+                        <td>2023-11-13 10:33:41</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="pagination">
+                <button>前へ</button>
+                <button class="active">1</button>
+                <button>2</button>
+                <button>3</button>
+                <button>...</button>
+                <button>25</button>
+                <button>次へ</button>
+            </div>
+        </div>
+
+        <!-- 初期状態（データ取得前）の表示例 -->
+        <!-- 
+        <div class="result-container">
+            <div class="empty-state">
+                <div class="empty-state-icon">📦</div>
+                <div>「最新化」ボタンを押して、最新の在庫情報を取得してください</div>
+            </div>
+        </div>
+        -->
+
+        <!-- ローディング中の表示例 -->
+        <!--
+        <div class="result-container">
+            <div class="loading">
+                <div>読み込み中...</div>
+            </div>
+        </div>
+        -->
+    </div>
+</body>
+</html>

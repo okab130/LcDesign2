@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>出庫依頼一覧 - LC自動倉庫出庫指示システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #F5F5F5;
+        }
+        .header {
+            background-color: #2196F3;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .header-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .btn-link {
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .btn-logout {
+            background-color: white;
+            color: #2196F3;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .main-content {
+            max-width: 1600px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        .page-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .search-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .search-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        input[type="date"],
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        .checkbox-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background-color: #2196F3;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #1976D2;
+        }
+        .btn-secondary {
+            background-color: white;
+            color: #666;
+            border: 2px solid #ddd;
+        }
+        .btn-danger {
+            background-color: #F44336;
+            color: white;
+        }
+        .btn-success {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .result-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .result-count {
+            font-size: 14px;
+            color: #666;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th {
+            background-color: #2196F3;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-size: 13px;
+            position: sticky;
+            top: 0;
+        }
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            font-size: 13px;
+        }
+        tr:nth-child(even) {
+            background-color: #FAFAFA;
+        }
+        tr:hover {
+            background-color: #E3F2FD;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .status-created {
+            background-color: #FFF3CD;
+            color: #856404;
+        }
+        .status-sent {
+            background-color: #D4EDDA;
+            color: #155724;
+        }
+        .status-error {
+            background-color: #F8D7DA;
+            color: #721C24;
+        }
+        .link {
+            color: #2196F3;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .link:hover {
+            text-decoration: underline;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .pagination button {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        .pagination button:hover {
+            background-color: #E3F2FD;
+        }
+        .pagination .active {
+            background-color: #2196F3;
+            color: white;
+            border-color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-title">LC自動倉庫出庫指示システム</div>
+        <div class="header-right">
+            <a href="#" class="btn-link">トップへ戻る</a>
+            <button class="btn-logout">ログアウト</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="page-title">出庫依頼一覧・送信</div>
+
+        <div class="search-container">
+            <div class="search-grid">
+                <div class="form-group">
+                    <label>配送予定日（開始）</label>
+                    <input type="date" value="2023-11-16">
+                </div>
+                <div class="form-group">
+                    <label>配送予定日（終了）</label>
+                    <input type="date" value="2023-11-20">
+                </div>
+                <div class="form-group">
+                    <label>配送拠点</label>
+                    <select multiple style="height: 34px;">
+                        <option value="">すべて</option>
+                        <option value="BASE001">BASE001 - 東京拠点</option>
+                        <option value="BASE002">BASE002 - 大阪拠点</option>
+                        <option value="BASE003">BASE003 - 名古屋拠点</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>ステータス</label>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" checked> 作成済</label>
+                    <label><input type="checkbox"> 送信済</label>
+                    <label><input type="checkbox"> エラー</label>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-secondary">クリア</button>
+                <button class="btn btn-primary">検索</button>
+            </div>
+        </div>
+
+        <div class="result-container">
+            <div class="result-header">
+                <div class="result-count">検索結果: 15件</div>
+                <div class="btn-group">
+                    <button class="btn btn-danger">削除</button>
+                    <button class="btn btn-success">送信</button>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;"><input type="checkbox"></th>
+                        <th style="width: 150px;">出庫依頼ID</th>
+                        <th style="width: 120px;">配送拠点</th>
+                        <th style="width: 120px;">配送予定日</th>
+                        <th style="width: 100px;">ステータス</th>
+                        <th style="width: 100px;">合計数量</th>
+                        <th style="width: 150px;">登録日時</th>
+                        <th>依頼者</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="checkbox"></td>
+                        <td><a href="#" class="link">REQ-20231115-001</a></td>
+                        <td>BASE001<br><small>東京拠点</small></td>
+                        <td>2023-11-16</td>
+                        <td><span class="status-badge status-created">作成済</span></td>
+                        <td>440</td>
+                        <td>2023-11-15 15:30</td>
+                        <td>山田花子</td>
+                    </tr>
+                    <tr>
+                        <td><input type="checkbox"></td>
+                        <td><a href="#" class="link">REQ-20231115-002</a></td>
+                        <td>BASE002<br><small>大阪拠点</small></td>
+                        <td>2023-11-16</td>
+                        <td><span class="status-badge status-created">作成済</span></td>
+                        <td>360</td>
+                        <td>2023-11-15 16:00</td>
+                        <td>佐藤次郎</td>
+                    </tr>
+                    <tr>
+                        <td><input type="checkbox"></td>
+                        <td><a href="#" class="link">REQ-20231115-003</a></td>
+                        <td>BASE003<br><small>名古屋拠点</small></td>
+                        <td>2023-11-16</td>
+                        <td><span class="status-badge status-created">作成済</span></td>
+                        <td>480</td>
+                        <td>2023-11-15 16:30</td>
+                        <td>鈴木三郎</td>
+                    </tr>
+                    <tr>
+                        <td><input type="checkbox" disabled></td>
+                        <td><a href="#" class="link">REQ-20231114-015</a></td>
+                        <td>BASE001<br><small>東京拠点</small></td>
+                        <td>2023-11-15</td>
+                        <td><span class="status-badge status-sent">送信済</span></td>
+                        <td>320</td>
+                        <td>2023-11-14 17:00</td>
+                        <td>山田花子</td>
+                    </tr>
+                    <tr>
+                        <td><input type="checkbox"></td>
+                        <td><a href="#" class="link">REQ-20231114-012</a></td>
+                        <td>BASE004<br><small>福岡拠点</small></td>
+                        <td>2023-11-15</td>
+                        <td><span class="status-badge status-error">エラー</span></td>
+                        <td>200</td>
+                        <td>2023-11-14 15:20</td>
+                        <td>田中一郎</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="pagination">
+                <button>前へ</button>
+                <button class="active">1</button>
+                <button>2</button>
+                <button>3</button>
+                <button>次へ</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
