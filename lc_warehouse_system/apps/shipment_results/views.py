@@ -56,7 +56,15 @@ class LcShipmentResultViewSet(viewsets.ReadOnlyModelViewSet):
             for result_data in results_data:
                 try:
                     shipment_datetime_str = result_data.get('shipment_datetime')
-                    shipment_datetime = datetime.fromisoformat(shipment_datetime_str.replace('Z', '+00:00'))
+                    # タイムゾーン対応
+                    if 'Z' in shipment_datetime_str:
+                        shipment_datetime = datetime.fromisoformat(shipment_datetime_str.replace('Z', '+00:00'))
+                    elif '+' not in shipment_datetime_str and '-' not in shipment_datetime_str[-6:]:
+                        # naive datetimeの場合、UTCとして扱う
+                        from django.utils.timezone import make_aware
+                        shipment_datetime = make_aware(datetime.fromisoformat(shipment_datetime_str))
+                    else:
+                        shipment_datetime = datetime.fromisoformat(shipment_datetime_str)
                     
                     production_date = None
                     if result_data.get('production_date'):
@@ -66,15 +74,34 @@ class LcShipmentResultViewSet(viewsets.ReadOnlyModelViewSet):
                     if result_data.get('expiry_date'):
                         expiry_date = datetime.strptime(result_data['expiry_date'], '%Y-%m-%d').date()
                     
+                    # 外部キーの処理（存在しない場合はNULLにする）
+                    request_id_obj = None
+                    request_id_value = result_data.get('request_id')
+                    if request_id_value:
+                        try:
+                            from apps.shipment_requests.models import LcShipmentRequest
+                            request_id_obj = LcShipmentRequest.objects.get(request_id=request_id_value)
+                        except LcShipmentRequest.DoesNotExist:
+                            logger.warning(f'出庫依頼が見つかりません: {request_id_value}')
+                    
+                    base_code_obj = None
+                    base_code_value = result_data.get('base_code')
+                    if base_code_value:
+                        try:
+                            from apps.delivery_bases.models import DeliveryBase
+                            base_code_obj = DeliveryBase.objects.get(base_code=base_code_value)
+                        except DeliveryBase.DoesNotExist:
+                            logger.warning(f'配送拠点が見つかりません: {base_code_value}')
+                    
                     LcShipmentResult.objects.create(
                         result_id=result_data['result_id'],
-                        request_id_id=result_data.get('request_id'),
+                        request_id=request_id_obj,
                         pallet_id=result_data['pallet_id'],
                         product_code=result_data['product_code'],
                         quantity=result_data['quantity'],
                         shipment_type=result_data.get('shipment_type', 'AUTO'),
                         shipment_datetime=shipment_datetime,
-                        base_code_id=result_data.get('base_code'),
+                        base_code=base_code_obj,
                         location_code=result_data.get('location_code'),
                         factory_code=result_data.get('factory_code'),
                         line_code=result_data.get('line_code'),
