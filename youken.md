@@ -287,6 +287,7 @@ LCとは、ロジスティクスセンターを意味する。
 
 ### 9.1 技術要件
 - **フレームワーク**: Djangoフレームワークを使用
+- **データベース**: SQLite3（開発テスト環境用。本番環境ではPostgreSQL 14+を推奨）
 - **REST APIクライアント**: requests ライブラリを使用
 - **REST APIサーバー**: Django REST framework を使用
 - **認証方式**: なし（開発テスト環境用。本番環境ではJWT認証を実装予定）
@@ -295,10 +296,12 @@ LCとは、ロジスティクスセンターを意味する。
   - モックサーバURL: http://localhost:5001
   - 本システムURL: http://localhost:8000
   - 認証: なし
+  - データベース: SQLite3（自動作成）
 - **本番環境への移行時の注意**: 
   - HTTPS通信への変更
   - JWT認証の実装（djangorestframework-simplejwt使用）
   - APIエンドポイントURLの変更
+  - データベースをPostgreSQLに変更
 
 ### 9.2 データ保持
 - 出庫実績データの削除・アーカイブは考慮不要

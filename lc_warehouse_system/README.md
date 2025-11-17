@@ -14,16 +14,15 @@
 
 ## 技術スタック
 - **バックエンド**: Django 4.2+
-- **データベース**: PostgreSQL 14+
+- **データベース**: SQLite3（開発テスト環境用。本番環境ではPostgreSQL 14+を推奨）
 - **REST API**: Django REST framework
-- **認証**: JWT (djangorestframework-simplejwt)
-- **通信**: HTTPS (TLS 1.2+)
+- **認証**: なし（開発テスト環境用。本番環境ではJWT認証を実装予定）
+- **通信**: HTTP（開発テスト環境用。本番環境ではHTTPS (TLS 1.2+)を使用予定）
 
 ## 開発環境セットアップ
 
 ### 前提条件
 - Python 3.10以上
-- PostgreSQL 14以上
 - Git
 
 ### インストール手順
@@ -56,7 +55,7 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-5. データベースのセットアップ
+5. データベースのセットアップ（SQLiteは自動作成されます）
 ```bash
 python manage.py migrate
 ```
