@@ -21,7 +21,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'rest_framework_simplejwt',
     'corsheaders',
     'django_filters',
     'apps.products',
@@ -109,10 +108,15 @@ AUTH_USER_MODEL = 'users.User'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # 開発テスト環境では認証なし
+        # 本番環境では以下を有効化
+        # 'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        # 開発テスト環境では認証不要
+        'rest_framework.permissions.AllowAny',
+        # 本番環境では以下を有効化
+        # 'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
@@ -125,29 +129,33 @@ REST_FRAMEWORK = {
     'DATE_FORMAT': '%Y-%m-%d',
 }
 
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME', 30))),
-    'REFRESH_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME', 1440))),
-    'ROTATE_REFRESH_TOKENS': False,
-    'BLACKLIST_AFTER_ROTATION': False,
-    'UPDATE_LAST_LOGIN': True,
-    'ALGORITHM': 'HS256',
-    'SIGNING_KEY': os.getenv('JWT_SECRET_KEY', SECRET_KEY),
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
-}
+# JWT設定（開発テスト環境では未使用、本番環境で有効化）
+# SIMPLE_JWT = {
+#     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME', 30))),
+#     'REFRESH_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME', 1440))),
+#     'ROTATE_REFRESH_TOKENS': False,
+#     'BLACKLIST_AFTER_ROTATION': False,
+#     'UPDATE_LAST_LOGIN': True,
+#     'ALGORITHM': 'HS256',
+#     'SIGNING_KEY': os.getenv('JWT_SECRET_KEY', SECRET_KEY),
+#     'AUTH_HEADER_TYPES': ('Bearer',),
+#     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+# }
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:5001",
+    "http://127.0.0.1:5001",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
-LC_WAREHOUSE_API_BASE_URL = os.getenv('LC_WAREHOUSE_API_BASE_URL', 'https://lc-warehouse-api.example.com/api/v1')
-LC_WAREHOUSE_API_TOKEN = os.getenv('LC_WAREHOUSE_API_TOKEN', '')
+# LC自動倉庫API設定（開発テスト環境）
+LC_WAREHOUSE_API_BASE_URL = os.getenv('LC_WAREHOUSE_API_BASE_URL', 'http://localhost:5001/api/v1')
 
-SYSTEM_API_BASE_URL = os.getenv('SYSTEM_API_BASE_URL', 'https://shipment-system.example.com/api/v1')
+# 本システムAPI設定（Webhook受信用・開発テスト環境）
+SYSTEM_API_BASE_URL = os.getenv('SYSTEM_API_BASE_URL', 'http://localhost:8000/api/v1')
 SYSTEM_API_TOKEN = os.getenv('SYSTEM_API_TOKEN', '')
 
 SHARED_FOLDER_PATH = os.getenv('SHARED_FOLDER_PATH', '')
