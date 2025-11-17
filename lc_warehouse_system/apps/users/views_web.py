@@ -64,6 +64,12 @@ def shipment_request_register_view(request):
 
 
 @login_required(login_url='/login/')
+def shipment_request_detail_view(request, request_id):
+    """出庫依頼詳細画面"""
+    return render(request, 'shipment_request_detail.html', {'request_id': request_id})
+
+
+@login_required(login_url='/login/')
 def shipment_result_list_view(request):
     """出庫実績一覧画面"""
     return render(request, 'shipment_result_list.html')

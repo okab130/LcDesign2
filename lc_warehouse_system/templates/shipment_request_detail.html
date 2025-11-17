@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+
+{% block title %}出庫依頼詳細 - LC自動倉庫出庫指示システム{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="page-title">出庫依頼詳細</h1>
+    
+    <div id="loading" style="display: block; text-align: center; padding: 40px;">
+        <p style="color: #666;">データを取得中...</p>
+    </div>
+    
+    <div id="error-message" style="display: none;" class="alert alert-error"></div>
+    
+    <div id="detail-content" style="display: none;">
+        <!-- ヘッダー情報 -->
+        <div style="background-color: #E3F2FD; padding: 20px; border-radius: 5px; margin-bottom: 30px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div class="info-group">
+                    <label>出庫依頼ID</label>
+                    <div class="value" id="request_id"></div>
+                </div>
+                <div class="info-group">
+                    <label>配送拠点</label>
+                    <div class="value" id="base_name"></div>
+                </div>
+                <div class="info-group">
+                    <label>ステータス</label>
+                    <div class="value" id="request_status"></div>
+                </div>
+                <div class="info-group">
+                    <label>依頼日</label>
+                    <div class="value" id="request_date"></div>
+                </div>
+                <div class="info-group">
+                    <label>配送予定日</label>
+                    <div class="value" id="delivery_date"></div>
+                </div>
+                <div class="info-group">
+                    <label>合計数量</label>
+                    <div class="value" id="total_quantity"></div>
+                </div>
+                <div class="info-group">
+                    <label>依頼者</label>
+                    <div class="value" id="requested_by"></div>
+                </div>
+                <div class="info-group">
+                    <label>依頼日時</label>
+                    <div class="value" id="requested_at"></div>
+                </div>
+                <div class="info-group" id="sent-info" style="display: none;">
+                    <label>送信日時</label>
+                    <div class="value" id="sent_at"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 明細情報 -->
+        <div class="section-title">出庫明細</div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 60px;">行番号</th>
+                    <th style="width: 150px;">商品コード</th>
+                    <th>商品名</th>
+                    <th style="width: 120px; text-align: right;">依頼数量</th>
+                </tr>
+            </thead>
+            <tbody id="details-tbody">
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 20px;">読み込み中...</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- ボタン -->
+        <div style="margin-top: 30px; display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" class="btn-secondary" onclick="goBack()">← 一覧へ戻る</button>
+            <button type="button" class="btn-success" id="send-btn" style="display: none;" onclick="sendToLC()">📤 LC自動倉庫へ送信</button>
+            <button type="button" class="btn-danger" id="delete-btn" style="display: none;" onclick="deleteRequest()">🗑️ 削除</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .section-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #2196F3;
+        border-bottom: 2px solid #2196F3;
+        padding-bottom: 5px;
+    }
+    
+    .info-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .info-group label {
+        font-size: 12px;
+        color: #666;
+    }
+    
+    .info-group .value {
+        font-size: 16px;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    th {
+        background-color: #2196F3;
+        color: white;
+        padding: 12px;
+        text-align: left;
+        font-weight: bold;
+    }
+    
+    td {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .btn-success {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    
+    .btn-success:hover {
+        background-color: #45a049;
+    }
+</style>
+
+<script>
+let currentRequestId = '';
+let currentRequest = null;
+
+window.onload = function() {
+    // URLから依頼IDを取得
+    const pathParts = window.location.pathname.split('/');
+    currentRequestId = pathParts[pathParts.length - 2];
+    
+    loadRequestDetail();
+};
+
+async function loadRequestDetail() {
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('error-message');
+    const contentEl = document.getElementById('detail-content');
+    
+    try {
+        const response = await fetch(`/api/v1/shipment-requests/${currentRequestId}/`);
+        
+        if (!response.ok) {
+            throw new Error('出庫依頼の取得に失敗しました');
+        }
+        
+        currentRequest = await response.json();
+        
+        displayRequestDetail(currentRequest);
+        
+        loadingEl.style.display = 'none';
+        contentEl.style.display = 'block';
+        
+    } catch (error) {
+        loadingEl.style.display = 'none';
+        errorEl.textContent = error.message;
+        errorEl.style.display = 'block';
+    }
+}
+
+function displayRequestDetail(request) {
+    const statusMap = {
+        'CREATED': '作成済',
+        'SENT': '送信済',
+        'ERROR': 'エラー'
+    };
+    
+    const statusColorMap = {
+        'CREATED': '#9E9E9E',
+        'SENT': '#2196F3',
+        'ERROR': '#f44336'
+    };
+    
+    // ヘッダー情報
+    document.getElementById('request_id').textContent = request.request_id;
+    document.getElementById('base_name').textContent = request.base_name || request.base_code;
+    
+    const statusEl = document.getElementById('request_status');
+    statusEl.textContent = statusMap[request.request_status];
+    statusEl.style.color = statusColorMap[request.request_status];
+    
+    document.getElementById('request_date').textContent = request.request_date;
+    document.getElementById('delivery_date').textContent = request.delivery_date;
+    document.getElementById('total_quantity').textContent = request.total_quantity + ' ケース';
+    document.getElementById('requested_by').textContent = request.requested_by_name || '未設定';
+    document.getElementById('requested_at').textContent = request.requested_at ? new Date(request.requested_at).toLocaleString('ja-JP') : '-';
+    
+    if (request.sent_at) {
+        document.getElementById('sent-info').style.display = 'block';
+        document.getElementById('sent_at').textContent = new Date(request.sent_at).toLocaleString('ja-JP');
+    }
+    
+    // 明細情報
+    const detailsTbody = document.getElementById('details-tbody');
+    
+    if (request.details && request.details.length > 0) {
+        detailsTbody.innerHTML = request.details.map(detail => `
+            <tr>
+                <td style="text-align: center;">${detail.line_number}</td>
+                <td>${detail.product_code}</td>
+                <td>${detail.product_name || ''}</td>
+                <td style="text-align: right;">${detail.requested_quantity}</td>
+            </tr>
+        `).join('');
+    } else {
+        detailsTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #666;">明細がありません</td></tr>';
+    }
+    
+    // ボタン表示制御
+    if (request.request_status === 'CREATED') {
+        document.getElementById('send-btn').style.display = 'inline-block';
+        document.getElementById('delete-btn').style.display = 'inline-block';
+    }
+}
+
+function goBack() {
+    window.location.href = "{% url 'shipment_request_list' %}";
+}
+
+async function sendToLC() {
+    if (!confirm('この出庫依頼をLC自動倉庫へ送信しますか？')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/v1/shipment-requests/send_to_lc/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                request_ids: [currentRequestId]
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'LC自動倉庫への送信に失敗しました');
+        }
+        
+        const result = await response.json();
+        alert(result.message);
+        
+        // データを再読み込み
+        loadRequestDetail();
+        
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function deleteRequest() {
+    if (!confirm('この出庫依頼を削除しますか？')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/v1/shipment-requests/${currentRequestId}/`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || '削除に失敗しました');
+        }
+        
+        alert('削除しました');
+        goBack();
+        
+    } catch (error) {
+        alert(error.message);
+    }
+}
+</script>
+{% endblock %}

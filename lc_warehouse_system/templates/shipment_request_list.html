@@ -6,8 +6,9 @@
 <div class="card">
     <h1 class="page-title">出庫依頼一覧</h1>
     
-    <div style="margin-bottom: 20px;">
+    <div style="margin-bottom: 20px; display: flex; gap: 10px;">
         <a href="{% url 'shipment_request_register' %}" class="btn-primary">➕ 新規出庫依頼登録</a>
+        <button type="button" class="btn-success" onclick="sendToLC()" id="send-btn" disabled>📤 LC自動倉庫へ送信</button>
     </div>
     
     <div id="loading" style="display: none; text-align: center; padding: 40px;">
@@ -15,21 +16,24 @@
     </div>
     
     <div id="error-message" style="display: none;" class="alert alert-error"></div>
+    <div id="success-message" style="display: none;" class="alert alert-success"></div>
     
     <table id="request-table">
         <thead>
             <tr>
+                <th style="width: 50px;"><input type="checkbox" id="check-all" onchange="toggleAllCheckboxes()"></th>
                 <th>出庫依頼ID</th>
                 <th>配送拠点</th>
                 <th>配送予定日</th>
                 <th>依頼日</th>
+                <th>合計数量</th>
                 <th>ステータス</th>
                 <th>操作</th>
             </tr>
         </thead>
         <tbody id="request-tbody">
             <tr>
-                <td colspan="6" style="text-align: center; color: #666; padding: 40px;">
+                <td colspan="8" style="text-align: center; color: #666; padding: 40px;">
                     読み込み中...
                 </td>
             </tr>
@@ -39,13 +43,58 @@
     <div id="total-count" style="margin-top: 15px; color: #666; font-size: 14px;"></div>
 </div>
 
+<style>
+    .btn-success {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .btn-success:hover:not(:disabled) {
+        background-color: #45a049;
+    }
+    
+    .btn-success:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+    }
+    
+    .btn-warning {
+        background-color: #FF9800;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+    
+    .btn-warning:hover {
+        background-color: #F57C00;
+    }
+    
+    input[type="checkbox"] {
+        cursor: pointer;
+        width: 18px;
+        height: 18px;
+    }
+</style>
+
 <script>
+let allRequests = [];
+
 async function loadRequests() {
     const loadingEl = document.getElementById('loading');
     const errorEl = document.getElementById('error-message');
     const tbodyEl = document.getElementById('request-tbody');
     
     loadingEl.style.display = 'block';
+    errorEl.style.display = 'none';
     
     try {
         const response = await fetch('/api/v1/shipment-requests/');
@@ -55,20 +104,20 @@ async function loadRequests() {
         }
         
         const data = await response.json();
-        const requests = data.results || data;
+        allRequests = data.results || data;
         
-        if (requests.length === 0) {
-            tbodyEl.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #666; padding: 40px;">出庫依頼がありません</td></tr>';
+        if (allRequests.length === 0) {
+            tbodyEl.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #666; padding: 40px;">出庫依頼がありません</td></tr>';
         } else {
-            displayRequests(requests);
+            displayRequests(allRequests);
         }
         
-        document.getElementById('total-count').textContent = `合計: ${requests.length} 件`;
+        document.getElementById('total-count').textContent = `合計: ${allRequests.length} 件`;
         
     } catch (error) {
         errorEl.textContent = error.message;
         errorEl.style.display = 'block';
-        tbodyEl.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #f44336; padding: 40px;">エラーが発生しました</td></tr>';
+        tbodyEl.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #f44336; padding: 40px;">エラーが発生しました</td></tr>';
     } finally {
         loadingEl.style.display = 'none';
     }
@@ -78,32 +127,55 @@ function displayRequests(requests) {
     const tbody = document.getElementById('request-tbody');
     
     const statusMap = {
-        'DRAFT': '下書き',
+        'CREATED': '作成済',
         'SENT': '送信済',
-        'COMPLETED': '出庫完了',
         'ERROR': 'エラー'
     };
     
     const statusColorMap = {
-        'DRAFT': '#9E9E9E',
+        'CREATED': '#9E9E9E',
         'SENT': '#2196F3',
-        'COMPLETED': '#4CAF50',
         'ERROR': '#f44336'
     };
     
     tbody.innerHTML = requests.map(req => `
         <tr>
+            <td style="text-align: center;">
+                ${req.request_status === 'CREATED' ? `<input type="checkbox" class="request-checkbox" value="${req.request_id}" onchange="updateSendButton()">` : ''}
+            </td>
             <td>${req.request_id}</td>
-            <td>${req.base_code}</td>
+            <td>${req.base_name || req.base_code}</td>
             <td>${req.delivery_date}</td>
-            <td>${new Date(req.request_date).toLocaleDateString('ja-JP')}</td>
+            <td>${req.request_date}</td>
+            <td style="text-align: right;">${req.total_quantity}</td>
             <td><span style="color: ${statusColorMap[req.request_status]}; font-weight: bold;">${statusMap[req.request_status]}</span></td>
             <td>
-                <button class="btn-primary" onclick="viewDetail('${req.request_id}')">詳細</button>
-                ${req.request_status === 'DRAFT' ? `<button class="btn-danger" onclick="deleteRequest('${req.request_id}')">削除</button>` : ''}
+                <button class="btn-primary" style="font-size: 12px; padding: 5px 10px;" onclick="viewDetail('${req.request_id}')">📋 詳細</button>
+                ${req.request_status === 'CREATED' ? `<button class="btn-danger" style="font-size: 12px; padding: 5px 10px;" onclick="deleteRequest('${req.request_id}')">🗑️ 削除</button>` : ''}
+                ${req.request_status === 'ERROR' ? `<button class="btn-warning" style="font-size: 12px; padding: 5px 10px;" onclick="resendRequest('${req.request_id}')">🔄 再送</button>` : ''}
             </td>
         </tr>
     `).join('');
+    
+    updateSendButton();
+}
+
+function toggleAllCheckboxes() {
+    const checkAll = document.getElementById('check-all');
+    const checkboxes = document.querySelectorAll('.request-checkbox');
+    
+    checkboxes.forEach(cb => {
+        cb.checked = checkAll.checked;
+    });
+    
+    updateSendButton();
+}
+
+function updateSendButton() {
+    const checkboxes = document.querySelectorAll('.request-checkbox:checked');
+    const sendBtn = document.getElementById('send-btn');
+    
+    sendBtn.disabled = checkboxes.length === 0;
 }
 
 function viewDetail(requestId) {
@@ -121,14 +193,91 @@ async function deleteRequest(requestId) {
         });
         
         if (!response.ok) {
-            throw new Error('削除に失敗しました');
+            const error = await response.json();
+            throw new Error(error.error || '削除に失敗しました');
         }
         
-        alert('削除しました');
+        showSuccess('削除しました');
         loadRequests();
     } catch (error) {
-        alert(error.message);
+        showError(error.message);
     }
+}
+
+async function sendToLC() {
+    const checkboxes = document.querySelectorAll('.request-checkbox:checked');
+    
+    if (checkboxes.length === 0) {
+        showError('送信する出庫依頼を選択してください');
+        return;
+    }
+    
+    const requestIds = Array.from(checkboxes).map(cb => cb.value);
+    
+    if (!confirm(`${requestIds.length}件の出庫依頼をLC自動倉庫へ送信しますか？`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/v1/shipment-requests/send_to_lc/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                request_ids: requestIds
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'LC自動倉庫への送信に失敗しました');
+        }
+        
+        const result = await response.json();
+        showSuccess(result.message);
+        
+        // チェックボックスをクリア
+        document.getElementById('check-all').checked = false;
+        
+        // データを再読み込み
+        setTimeout(() => {
+            loadRequests();
+        }, 2000);
+        
+    } catch (error) {
+        showError(error.message);
+    }
+}
+
+async function resendRequest(requestId) {
+    if (!confirm('この出庫依頼を再送信しますか？')) {
+        return;
+    }
+    
+    await sendToLC();
+}
+
+function showError(message) {
+    const errorEl = document.getElementById('error-message');
+    const successEl = document.getElementById('success-message');
+    
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+    successEl.style.display = 'none';
+    
+    window.scrollTo(0, 0);
+}
+
+function showSuccess(message) {
+    const errorEl = document.getElementById('error-message');
+    const successEl = document.getElementById('success-message');
+    
+    successEl.textContent = message;
+    successEl.style.display = 'block';
+    errorEl.style.display = 'none';
+    
+    window.scrollTo(0, 0);
 }
 
 window.onload = loadRequests;
