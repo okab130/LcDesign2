@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}出庫実績一覧 - LC自動倉庫出庫指示システム{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="page-title">出庫実績一覧</h1>
+    
+    <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+        <input type="date" id="date-from" style="width: 200px;">
+        <span style="line-height: 40px;">〜</span>
+        <input type="date" id="date-to" style="width: 200px;">
+        <button class="btn-primary" onclick="loadResults()">🔍 検索</button>
+        <button class="btn-secondary" onclick="clearFilter()">クリア</button>
+    </div>
+    
+    <div id="loading" style="display: none; text-align: center; padding: 40px;">
+        <p style="color: #666;">出庫実績データを取得中...</p>
+    </div>
+    
+    <div id="error-message" style="display: none;" class="alert alert-error"></div>
+    
+    <table id="result-table">
+        <thead>
+            <tr>
+                <th>出庫実績ID</th>
+                <th>出庫依頼ID</th>
+                <th>パレットID</th>
+                <th>商品コード</th>
+                <th>数量</th>
+                <th>出庫区分</th>
+                <th>出庫日時</th>
+                <th>配送拠点</th>
+            </tr>
+        </thead>
+        <tbody id="result-tbody">
+            <tr>
+                <td colspan="8" style="text-align: center; color: #666; padding: 40px;">
+                    読み込み中...
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <div id="total-count" style="margin-top: 15px; color: #666; font-size: 14px;"></div>
+</div>
+
+<script>
+async function loadResults() {
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('error-message');
+    const tbodyEl = document.getElementById('result-tbody');
+    
+    loadingEl.style.display = 'block';
+    errorEl.style.display = 'none';
+    
+    try {
+        const response = await fetch('/api/v1/shipment-results/');
+        
+        if (!response.ok) {
+            throw new Error('出庫実績データの取得に失敗しました');
+        }
+        
+        const data = await response.json();
+        let results = data.results || data;
+        
+        // 日付フィルタ
+        const dateFrom = document.getElementById('date-from').value;
+        const dateTo = document.getElementById('date-to').value;
+        
+        if (dateFrom) {
+            results = results.filter(r => r.shipment_datetime >= dateFrom + 'T00:00:00');
+        }
+        if (dateTo) {
+            results = results.filter(r => r.shipment_datetime <= dateTo + 'T23:59:59');
+        }
+        
+        if (results.length === 0) {
+            tbodyEl.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #666; padding: 40px;">出庫実績がありません</td></tr>';
+        } else {
+            displayResults(results);
+        }
+        
+        document.getElementById('total-count').textContent = `合計: ${results.length} 件`;
+        
+    } catch (error) {
+        errorEl.textContent = error.message;
+        errorEl.style.display = 'block';
+        tbodyEl.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #f44336; padding: 40px;">エラーが発生しました</td></tr>';
+    } finally {
+        loadingEl.style.display = 'none';
+    }
+}
+
+function displayResults(results) {
+    const tbody = document.getElementById('result-tbody');
+    
+    tbody.innerHTML = results.map(res => `
+        <tr>
+            <td>${res.result_id}</td>
+            <td>${res.request_id || '-'}</td>
+            <td>${res.pallet_id}</td>
+            <td>${res.product_code}</td>
+            <td style="text-align: right;">${res.quantity.toLocaleString()}</td>
+            <td>${res.shipment_type === 'AUTO' ? '自動出庫' : '手動出庫'}</td>
+            <td>${new Date(res.shipment_datetime).toLocaleString('ja-JP')}</td>
+            <td>${res.base_code}</td>
+        </tr>
+    `).join('');
+}
+
+function clearFilter() {
+    document.getElementById('date-from').value = '';
+    document.getElementById('date-to').value = '';
+    loadResults();
+}
+
+window.onload = loadResults;
+</script>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}トップ - LC自動倉庫出庫指示システム{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="page-title">トップページ</h1>
+    
+    <div style="margin-top: 30px;">
+        <p style="font-size: 16px; color: #666; margin-bottom: 30px;">
+            ようこそ、{{ request.session.user_name }}さん（{{ request.session.user_type_display }}）
+        </p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+            <div class="menu-card">
+                <h3 style="color: #2196F3; margin-bottom: 15px;">📦 在庫照会</h3>
+                <p style="color: #666; margin-bottom: 15px;">LC自動倉庫の現在の在庫状況を確認できます。</p>
+                <a href="{% url 'inventory' %}" class="btn-primary">在庫照会へ</a>
+            </div>
+            
+            <div class="menu-card">
+                <h3 style="color: #2196F3; margin-bottom: 15px;">📤 出庫依頼</h3>
+                <p style="color: #666; margin-bottom: 15px;">LC自動倉庫への出庫依頼の登録・確認ができます。</p>
+                <a href="{% url 'shipment_request_list' %}" class="btn-primary">出庫依頼へ</a>
+            </div>
+            
+            <div class="menu-card">
+                <h3 style="color: #2196F3; margin-bottom: 15px;">📊 出庫実績</h3>
+                <p style="color: #666; margin-bottom: 15px;">出庫実績の確認ができます。</p>
+                <a href="{% url 'shipment_result_list' %}" class="btn-primary">出庫実績へ</a>
+            </div>
+            
+            {% if request.session.user_type == 'ADMIN' %}
+            <div class="menu-card">
+                <h3 style="color: #2196F3; margin-bottom: 15px;">⚙️ マスタ管理</h3>
+                <p style="color: #666; margin-bottom: 15px;">商品・拠点・ユーザーのマスタ管理ができます。</p>
+                <a href="/admin/" class="btn-primary">管理画面へ</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .menu-card {
+        background: #f9f9f9;
+        padding: 20px;
+        border-radius: 10px;
+        border: 2px solid #e0e0e0;
+        transition: all 0.3s;
+    }
+    .menu-card:hover {
+        border-color: #2196F3;
+        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+    }
+    .menu-card .btn-primary {
+        display: inline-block;
+        text-decoration: none;
+    }
+</style>
+{% endblock %}

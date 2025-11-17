@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}出庫依頼一覧 - LC自動倉庫出庫指示システム{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="page-title">出庫依頼一覧</h1>
+    
+    <div style="margin-bottom: 20px;">
+        <a href="{% url 'shipment_request_register' %}" class="btn-primary">➕ 新規出庫依頼登録</a>
+    </div>
+    
+    <div id="loading" style="display: none; text-align: center; padding: 40px;">
+        <p style="color: #666;">出庫依頼データを取得中...</p>
+    </div>
+    
+    <div id="error-message" style="display: none;" class="alert alert-error"></div>
+    
+    <table id="request-table">
+        <thead>
+            <tr>
+                <th>出庫依頼ID</th>
+                <th>配送拠点</th>
+                <th>配送予定日</th>
+                <th>依頼日</th>
+                <th>ステータス</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody id="request-tbody">
+            <tr>
+                <td colspan="6" style="text-align: center; color: #666; padding: 40px;">
+                    読み込み中...
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <div id="total-count" style="margin-top: 15px; color: #666; font-size: 14px;"></div>
+</div>
+
+<script>
+async function loadRequests() {
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('error-message');
+    const tbodyEl = document.getElementById('request-tbody');
+    
+    loadingEl.style.display = 'block';
+    
+    try {
+        const response = await fetch('/api/v1/shipment-requests/');
+        
+        if (!response.ok) {
+            throw new Error('出庫依頼データの取得に失敗しました');
+        }
+        
+        const data = await response.json();
+        const requests = data.results || data;
+        
+        if (requests.length === 0) {
+            tbodyEl.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #666; padding: 40px;">出庫依頼がありません</td></tr>';
+        } else {
+            displayRequests(requests);
+        }
+        
+        document.getElementById('total-count').textContent = `合計: ${requests.length} 件`;
+        
+    } catch (error) {
+        errorEl.textContent = error.message;
+        errorEl.style.display = 'block';
+        tbodyEl.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #f44336; padding: 40px;">エラーが発生しました</td></tr>';
+    } finally {
+        loadingEl.style.display = 'none';
+    }
+}
+
+function displayRequests(requests) {
+    const tbody = document.getElementById('request-tbody');
+    
+    const statusMap = {
+        'DRAFT': '下書き',
+        'SENT': '送信済',
+        'COMPLETED': '出庫完了',
+        'ERROR': 'エラー'
+    };
+    
+    const statusColorMap = {
+        'DRAFT': '#9E9E9E',
+        'SENT': '#2196F3',
+        'COMPLETED': '#4CAF50',
+        'ERROR': '#f44336'
+    };
+    
+    tbody.innerHTML = requests.map(req => `
+        <tr>
+            <td>${req.request_id}</td>
+            <td>${req.base_code}</td>
+            <td>${req.delivery_date}</td>
+            <td>${new Date(req.request_date).toLocaleDateString('ja-JP')}</td>
+            <td><span style="color: ${statusColorMap[req.request_status]}; font-weight: bold;">${statusMap[req.request_status]}</span></td>
+            <td>
+                <button class="btn-primary" onclick="viewDetail('${req.request_id}')">詳細</button>
+                ${req.request_status === 'DRAFT' ? `<button class="btn-danger" onclick="deleteRequest('${req.request_id}')">削除</button>` : ''}
+            </td>
+        </tr>
+    `).join('');
+}
+
+function viewDetail(requestId) {
+    window.location.href = `/shipment-request/${requestId}/`;
+}
+
+async function deleteRequest(requestId) {
+    if (!confirm('この出庫依頼を削除しますか？')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/v1/shipment-requests/${requestId}/`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            throw new Error('削除に失敗しました');
+        }
+        
+        alert('削除しました');
+        loadRequests();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+window.onload = loadRequests;
+</script>
+{% endblock %}

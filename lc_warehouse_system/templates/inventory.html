@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block title %}在庫照会 - LC自動倉庫出庫指示システム{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="page-title">在庫照会</h1>
+    
+    <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <button class="btn-success" onclick="refreshInventory()">🔄 最新化</button>
+            <span id="last-updated" style="margin-left: 15px; color: #666; font-size: 14px;"></span>
+        </div>
+        <div>
+            <input type="text" id="search" placeholder="商品コード、ロケーション、工場で検索..." 
+                   style="width: 300px; padding: 8px;" onkeyup="filterTable()">
+        </div>
+    </div>
+    
+    <div id="loading" style="display: none; text-align: center; padding: 40px;">
+        <p style="color: #666;">在庫データを取得中...</p>
+    </div>
+    
+    <div id="error-message" style="display: none;" class="alert alert-error"></div>
+    
+    <div id="inventory-table-container">
+        <table id="inventory-table">
+            <thead>
+                <tr>
+                    <th>パレットID</th>
+                    <th>商品コード</th>
+                    <th>ロケーション</th>
+                    <th>工場コード</th>
+                    <th>ラインコード</th>
+                    <th>製造番号</th>
+                    <th>製造日</th>
+                    <th>消費期限</th>
+                    <th>数量</th>
+                    <th>入庫区分</th>
+                    <th>入庫日時</th>
+                </tr>
+            </thead>
+            <tbody id="inventory-tbody">
+                <tr>
+                    <td colspan="11" style="text-align: center; color: #666; padding: 40px;">
+                        「最新化」ボタンをクリックして在庫データを取得してください
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div id="total-count" style="margin-top: 15px; color: #666; font-size: 14px;"></div>
+</div>
+
+<script>
+let inventoryData = [];
+
+async function refreshInventory() {
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('error-message');
+    const tbodyEl = document.getElementById('inventory-tbody');
+    
+    loadingEl.style.display = 'block';
+    errorEl.style.display = 'none';
+    
+    try {
+        const response = await fetch('http://localhost:5001/api/v1/inventory');
+        
+        if (!response.ok) {
+            throw new Error('在庫データの取得に失敗しました');
+        }
+        
+        const data = await response.json();
+        inventoryData = data.inventories || [];
+        
+        displayInventory(inventoryData);
+        
+        const now = new Date();
+        document.getElementById('last-updated').textContent = 
+            `最終更新: ${now.toLocaleString('ja-JP')}`;
+        
+        document.getElementById('total-count').textContent = 
+            `合計: ${inventoryData.length} 件`;
+        
+    } catch (error) {
+        errorEl.textContent = error.message;
+        errorEl.style.display = 'block';
+        tbodyEl.innerHTML = '<tr><td colspan="11" style="text-align: center; color: #f44336; padding: 40px;">エラーが発生しました</td></tr>';
+    } finally {
+        loadingEl.style.display = 'none';
+    }
+}
+
+function displayInventory(data) {
+    const tbody = document.getElementById('inventory-tbody');
+    
+    if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: #666; padding: 40px;">在庫データがありません</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = data.map(item => `
+        <tr>
+            <td>${item.pallet_id}</td>
+            <td>${item.product_code}</td>
+            <td>${item.location_code}</td>
+            <td>${item.factory_code}</td>
+            <td>${item.line_code}</td>
+            <td>${item.production_number}</td>
+            <td>${item.production_date}</td>
+            <td>${item.expiry_date}</td>
+            <td style="text-align: right;">${item.quantity.toLocaleString()}</td>
+            <td>${item.entry_type === 'AUTO' ? '自動入庫' : '手動入庫'}</td>
+            <td>${new Date(item.entry_datetime).toLocaleString('ja-JP')}</td>
+        </tr>
+    `).join('');
+}
+
+function filterTable() {
+    const searchValue = document.getElementById('search').value.toLowerCase();
+    
+    if (searchValue === '') {
+        displayInventory(inventoryData);
+        document.getElementById('total-count').textContent = 
+            `合計: ${inventoryData.length} 件`;
+        return;
+    }
+    
+    const filtered = inventoryData.filter(item => 
+        item.product_code.toLowerCase().includes(searchValue) ||
+        item.location_code.toLowerCase().includes(searchValue) ||
+        item.factory_code.toLowerCase().includes(searchValue)
+    );
+    
+    displayInventory(filtered);
+    document.getElementById('total-count').textContent = 
+        `表示: ${filtered.length} 件 / 合計: ${inventoryData.length} 件`;
+}
+</script>
+{% endblock %}
