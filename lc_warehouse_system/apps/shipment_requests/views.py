@@ -88,6 +88,7 @@ class LcShipmentRequestViewSet(viewsets.ModelViewSet):
             details = []
             for detail in req.details.all():
                 details.append({
+                    'line_number': detail.line_number,
                     'product_code': detail.product_code.product_code,
                     'quantity': detail.requested_quantity
                 })
@@ -111,7 +112,7 @@ class LcShipmentRequestViewSet(viewsets.ModelViewSet):
             
             response = requests.post(
                 api_url,
-                json={'shipment_requests': shipment_requests_data},
+                json={'requests': shipment_requests_data},
                 headers=headers,
                 timeout=30
             )
@@ -122,11 +123,11 @@ class LcShipmentRequestViewSet(viewsets.ModelViewSet):
                 with transaction.atomic():
                     for req_result in result.get('results', []):
                         req_id = req_result.get('request_id')
-                        is_success = req_result.get('success', False)
+                        result_status = req_result.get('status', '')
                         
                         try:
                             req_obj = LcShipmentRequest.objects.get(request_id=req_id)
-                            if is_success:
+                            if result_status == 'success':
                                 req_obj.request_status = 'SENT'
                                 # 開発テスト環境では認証なしでも動作するように
                                 if request.user.is_authenticated:
@@ -138,7 +139,7 @@ class LcShipmentRequestViewSet(viewsets.ModelViewSet):
                                 error_count += 1
                                 errors.append({
                                     'request_id': req_id,
-                                    'error': req_result.get('error', '送信エラー')
+                                    'error': req_result.get('message', '送信エラー')
                                 })
                             req_obj.save()
                         except LcShipmentRequest.DoesNotExist:
