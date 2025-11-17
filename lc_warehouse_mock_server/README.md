@@ -2,13 +2,14 @@
 
 LC自動倉庫システムのAPIをシミュレートするモックサーバです。開発・テスト環境で本システムと連携してテストを行うために使用します。
 
+**注意**: このモックサーバは開発テスト環境用です。認証なし、HTTP通信で動作します。
+
 ## 機能
 
-- JWT認証（トークン取得、リフレッシュ）
-- 在庫情報取得API
-- 出庫依頼送信API
+- 在庫情報取得API（認証なし）
+- 出庫依頼送信API（認証なし）
 - テストデータ管理API（在庫追加、クリア、リセット）
-- エラーシミュレーション（タイムアウト、認証エラー、サーバーエラー等）
+- エラーシミュレーション（タイムアウト、サーバーエラー等）
 - 手動Webhook送信（出庫実績を本システムへ送信）
 
 ## セットアップ
@@ -43,45 +44,16 @@ flask run --host=0.0.0.0 --port=5001
 
 ## API一覧
 
-### 認証API
-
-#### トークン取得
-```
-POST /api/v1/auth/token
-```
-
-リクエスト:
-```json
-{
-  "client_id": "shipment_system_client",
-  "client_secret": "mock_secret_key_12345"
-}
-```
-
-#### トークンリフレッシュ
-```
-POST /api/v1/auth/refresh
-```
-
-リクエスト:
-```json
-{
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-### LC倉庫API
+### LC倉庫API（認証なし）
 
 #### 在庫情報取得
 ```
 GET /api/v1/inventory
-Authorization: Bearer {access_token}
 ```
 
 #### 出庫依頼送信
 ```
 POST /api/v1/shipment-requests
-Authorization: Bearer {access_token}
 Content-Type: application/json
 ```
 
@@ -137,7 +109,6 @@ POST /api/v1/admin/error-mode
 
 エラータイプ:
 - `timeout`: タイムアウトシミュレーション
-- `auth_error`: 認証エラー
 - `server_error`: 500エラー
 - `insufficient_inventory`: 在庫不足エラー
 
@@ -183,30 +154,16 @@ POST /api/v1/admin/send-webhook
 ```python
 import requests
 
-# 1. トークン取得
-auth_response = requests.post(
-    "http://localhost:5001/api/v1/auth/token",
-    json={
-        "client_id": "shipment_system_client",
-        "client_secret": "mock_secret_key_12345"
-    }
-)
-access_token = auth_response.json()["access_token"]
-
-# 2. 在庫情報取得
+# 1. 在庫情報取得（認証なし）
 inventory_response = requests.get(
-    "http://localhost:5001/api/v1/inventory",
-    headers={"Authorization": f"Bearer {access_token}"}
+    "http://localhost:5001/api/v1/inventory"
 )
 print(inventory_response.json())
 
-# 3. 出庫依頼送信
+# 2. 出庫依頼送信（認証なし）
 shipment_response = requests.post(
     "http://localhost:5001/api/v1/shipment-requests",
-    headers={
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
-    },
+    headers={"Content-Type": "application/json"},
     json={
         "requests": [
             {
@@ -226,7 +183,7 @@ shipment_response = requests.post(
 )
 print(shipment_response.json())
 
-# 4. 出庫実績Webhook送信（手動）
+# 3. 出庫実績Webhook送信（手動）
 webhook_response = requests.post(
     "http://localhost:5001/api/v1/admin/send-webhook",
     json={
@@ -257,18 +214,11 @@ print(webhook_response.json())
 ### curlでのテスト
 
 ```bash
-# トークン取得
-curl -X POST http://localhost:5001/api/v1/auth/token \
-  -H "Content-Type: application/json" \
-  -d '{"client_id":"shipment_system_client","client_secret":"mock_secret_key_12345"}'
+# 在庫情報取得（認証なし）
+curl -X GET http://localhost:5001/api/v1/inventory
 
-# 在庫情報取得
-curl -X GET http://localhost:5001/api/v1/inventory \
-  -H "Authorization: Bearer {YOUR_ACCESS_TOKEN}"
-
-# 出庫依頼送信
+# 出庫依頼送信（認証なし）
 curl -X POST http://localhost:5001/api/v1/shipment-requests \
-  -H "Authorization: Bearer {YOUR_ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "requests": [
@@ -307,7 +257,6 @@ requests.post(
 try:
     response = requests.get(
         "http://localhost:5001/api/v1/inventory",
-        headers={"Authorization": f"Bearer {access_token}"},
         timeout=30
     )
 except requests.exceptions.Timeout:
@@ -345,6 +294,15 @@ MOCK_SERVER_PORT=5002
 rm mock_data.db
 python app.py
 ```
+
+## 本番環境への移行について
+
+このモックサーバは開発テスト環境専用です。本番環境では以下の対応が必要です：
+
+1. **HTTPS通信への変更**
+2. **JWT認証の実装**
+3. **APIエンドポイントURLの変更**
+4. **セキュリティ強化**
 
 ## ライセンス
 

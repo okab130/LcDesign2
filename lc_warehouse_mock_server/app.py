@@ -1,7 +1,6 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 from config import Config
-from api.auth import auth_bp
 from api.inventory import inventory_bp
 from api.shipment_requests import shipment_requests_bp
 from api.admin import admin_bp
@@ -21,7 +20,6 @@ logging.basicConfig(
 )
 
 # Blueprintを登録
-app.register_blueprint(auth_bp)
 app.register_blueprint(inventory_bp)
 app.register_blueprint(shipment_requests_bp)
 app.register_blueprint(admin_bp)
@@ -33,7 +31,8 @@ def index():
     return jsonify({
         'name': 'LC Warehouse Mock Server',
         'version': '1.0',
-        'status': 'running'
+        'status': 'running',
+        'note': 'Development/Test environment - No authentication required'
     }), 200
 
 
@@ -67,6 +66,7 @@ if __name__ == '__main__':
     print(f"Starting LC Warehouse Mock Server on {Config.HOST}:{Config.PORT}")
     print(f"Debug mode: {Config.DEBUG}")
     print(f"CORS enabled: {Config.CORS_ENABLED}")
+    print("NOTE: Running in development mode - No authentication required")
     
     app.run(
         host=Config.HOST,

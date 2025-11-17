@@ -1,8 +1,6 @@
 import requests
 from flask import Blueprint, request, jsonify
 from database import Database
-from auth.jwt_manager import JWTManager
-from config import Config
 
 admin_bp = Blueprint('admin', __name__)
 db = Database()
@@ -129,7 +127,7 @@ def clear_error_mode():
 
 @admin_bp.route('/api/v1/admin/send-webhook', methods=['POST'])
 def send_webhook():
-    """手動Webhook送信API"""
+    """手動Webhook送信API（認証なし）"""
     data = request.get_json()
     
     if not data:
@@ -153,17 +151,12 @@ def send_webhook():
             'message': 'results is required'
         }), 400
     
-    # 本システムのJWTトークンを生成（モック用）
-    # 実際には本システム側のJWT設定と合わせる必要がある
-    access_token = JWTManager.generate_access_token('lc_warehouse_mock')
-    
-    # Webhookリクエストを送信
+    # Webhookリクエストを送信（認証なし）
     try:
         response = requests.post(
             target_url,
             json={'results': results},
             headers={
-                'Authorization': f'Bearer {access_token}',
                 'Content-Type': 'application/json'
             },
             timeout=30

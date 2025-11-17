@@ -1,6 +1,5 @@
 import time
 from flask import Blueprint, jsonify
-from auth.jwt_manager import require_jwt_auth
 from database import Database
 
 inventory_bp = Blueprint('inventory', __name__)
@@ -8,9 +7,8 @@ db = Database()
 
 
 @inventory_bp.route('/api/v1/inventory', methods=['GET'])
-@require_jwt_auth
 def get_inventory():
-    """在庫情報取得API"""
+    """在庫情報取得API（認証なし）"""
     
     # エラーモードチェック
     error_mode = db.get_error_mode('/api/v1/inventory')
@@ -25,13 +23,6 @@ def get_inventory():
                 'error': 'timeout',
                 'error_description': 'Request timeout'
             }), 504
-        
-        elif error_type == 'auth_error':
-            # 認証エラーシミュレーション
-            return jsonify({
-                'error': 'unauthorized',
-                'error_description': 'Invalid or expired JWT token'
-            }), 401
         
         elif error_type == 'server_error':
             # サーバーエラーシミュレーション

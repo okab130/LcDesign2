@@ -1,6 +1,5 @@
 import time
 from flask import Blueprint, request, jsonify
-from auth.jwt_manager import require_jwt_auth
 from database import Database
 
 shipment_requests_bp = Blueprint('shipment_requests', __name__)
@@ -8,9 +7,8 @@ db = Database()
 
 
 @shipment_requests_bp.route('/api/v1/shipment-requests', methods=['POST'])
-@require_jwt_auth
 def create_shipment_requests():
-    """出庫依頼送信API"""
+    """出庫依頼送信API（認証なし）"""
     
     # エラーモードチェック
     error_mode = db.get_error_mode('/api/v1/shipment-requests')
@@ -24,12 +22,6 @@ def create_shipment_requests():
                 'error': 'timeout',
                 'error_description': 'Request timeout'
             }), 504
-        
-        elif error_type == 'auth_error':
-            return jsonify({
-                'error': 'unauthorized',
-                'error_description': 'Invalid or expired JWT token'
-            }), 401
         
         elif error_type == 'server_error':
             return jsonify({
