@@ -1,7 +1,7 @@
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import User
 from .serializers import UserSerializer, ChangePasswordSerializer
@@ -11,7 +11,7 @@ class UserViewSet(viewsets.ModelViewSet):
     """ユーザーマスタのCRUD操作"""
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]  # 開発テスト環境では認証なし
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['user_type', 'is_active', 'base_code']
     search_fields = ['user_id', 'user_name']

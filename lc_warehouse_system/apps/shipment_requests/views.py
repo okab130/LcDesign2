@@ -4,7 +4,7 @@ from datetime import datetime
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
 from django.db import transaction
@@ -18,7 +18,7 @@ class LcShipmentRequestViewSet(viewsets.ModelViewSet):
     """出庫依頼のCRUD操作"""
     queryset = LcShipmentRequest.objects.all()
     serializer_class = LcShipmentRequestSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]  # 開発テスト環境では認証なし
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['request_status', 'base_code', 'delivery_date', 'request_date']
     search_fields = ['request_id', 'base_code__base_name']
@@ -30,6 +30,10 @@ class LcShipmentRequestViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
         user = self.request.user
         
+        # 開発テスト環境では認証チェックをスキップ
+        if not user.is_authenticated:
+            return queryset
+        
         if user.user_type == 'BASE_STAFF':
             return queryset.filter(base_code=user.base_code)
         
@@ -37,7 +41,11 @@ class LcShipmentRequestViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """出庫依頼作成時に依頼者を設定"""
-        serializer.save(requested_by=self.request.user)
+        # 開発テスト環境では認証チェックをスキップ
+        if self.request.user.is_authenticated:
+            serializer.save(requested_by=self.request.user)
+        else:
+            serializer.save()
     
     def destroy(self, request, *args, **kwargs):
         """削除（送信済み・エラーは削除不可）"""

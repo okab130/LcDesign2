@@ -3,7 +3,7 @@ import os
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
 from .models import DeliveryBase
@@ -14,7 +14,7 @@ class DeliveryBaseViewSet(viewsets.ReadOnlyModelViewSet):
     """配送拠点マスタの参照（CSV取り込み機能付き）"""
     queryset = DeliveryBase.objects.all()
     serializer_class = DeliveryBaseSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]  # 開発テスト環境では認証なし
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['base_code', 'base_name']
     ordering_fields = ['base_code', 'base_name']

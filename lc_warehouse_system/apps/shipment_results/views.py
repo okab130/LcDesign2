@@ -3,7 +3,7 @@ from datetime import datetime
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import LcShipmentResult
 from .serializers import LcShipmentResultSerializer, LcShipmentResultWebhookSerializer
@@ -15,7 +15,7 @@ class LcShipmentResultViewSet(viewsets.ReadOnlyModelViewSet):
     """出庫実績の参照"""
     queryset = LcShipmentResult.objects.all()
     serializer_class = LcShipmentResultSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]  # 開発テスト環境では認証なし
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = [
         'shipment_type',
