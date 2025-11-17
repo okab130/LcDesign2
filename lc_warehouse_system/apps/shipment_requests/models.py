@@ -60,7 +60,9 @@ class LcShipmentRequest(models.Model):
         verbose_name='依頼者',
         db_column='requested_by',
         to_field='user_id',
-        help_text='依頼を作成したユーザーID'
+        null=True,
+        blank=True,
+        help_text='依頼を作成したユーザーID（開発テスト環境ではオプション）'
     )
     requested_at = models.DateTimeField(
         '依頼作成日時',
