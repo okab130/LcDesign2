@@ -153,6 +153,7 @@ CORS_ALLOW_CREDENTIALS = True
 
 # LC自動倉庫API設定（開発テスト環境）
 LC_WAREHOUSE_API_BASE_URL = os.getenv('LC_WAREHOUSE_API_BASE_URL', 'http://localhost:5001/api/v1')
+LC_WAREHOUSE_API_TOKEN = os.getenv('LC_WAREHOUSE_API_TOKEN', '')  # 開発テスト環境では不要
 
 # 本システムAPI設定（Webhook受信用・開発テスト環境）
 SYSTEM_API_BASE_URL = os.getenv('SYSTEM_API_BASE_URL', 'http://localhost:8000/api/v1')

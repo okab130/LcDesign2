@@ -102,9 +102,12 @@ class LcShipmentRequestViewSet(viewsets.ModelViewSet):
         try:
             api_url = f"{settings.LC_WAREHOUSE_API_BASE_URL}/shipment-requests"
             headers = {
-                'Authorization': f'Bearer {settings.LC_WAREHOUSE_API_TOKEN}',
                 'Content-Type': 'application/json'
             }
+            
+            # 開発テスト環境ではトークン不要
+            if settings.LC_WAREHOUSE_API_TOKEN:
+                headers['Authorization'] = f'Bearer {settings.LC_WAREHOUSE_API_TOKEN}'
             
             response = requests.post(
                 api_url,
